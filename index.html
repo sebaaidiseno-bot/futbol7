@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fútbol 7 Pilsen · Formaciones</title>
+<meta name="description" content="Crea la formación de tu partido de fútbol 7 y descarga la imagen.">
+<meta name="theme-color" content="#14532d">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>⚽ Fútbol 7 Pilsen</h1>
+  <p>Escribe los nombres, elige la formación y descarga la imagen.</p>
+</header>
+
+<main>
+  <section class="teams">
+    <article class="team" id="team-a">
+      <h2><input class="team-name" data-team="a" value="Rojo" maxlength="18" aria-label="Nombre equipo 1"></h2>
+      <div class="colors" data-team="a"></div>
+      <div class="formations" data-team="a"></div>
+      <label class="lbl" for="names-a">Jugadores (uno por línea, el primero es el arquero)</label>
+      <textarea id="names-a" data-team="a" rows="7" placeholder="Arquero&#10;Defensa 1&#10;Defensa 2&#10;..."></textarea>
+      <div class="count" id="count-a"></div>
+    </article>
+
+    <article class="team" id="team-b">
+      <h2><input class="team-name" data-team="b" value="Blanco" maxlength="18" aria-label="Nombre equipo 2"></h2>
+      <div class="colors" data-team="b"></div>
+      <div class="formations" data-team="b"></div>
+      <label class="lbl" for="names-b">Jugadores (uno por línea, el primero es el arquero)</label>
+      <textarea id="names-b" data-team="b" rows="7" placeholder="Arquero&#10;Defensa 1&#10;Defensa 2&#10;..."></textarea>
+      <div class="count" id="count-b"></div>
+    </article>
+  </section>
+
+  <section class="actions">
+    <button id="shuffle" type="button" class="secondary">🔀 Mezclar equipos</button>
+    <button id="clear" type="button" class="secondary">Limpiar</button>
+  </section>
+
+  <section class="preview">
+    <canvas id="pitch" width="1080" height="1600"></canvas>
+    <div class="actions">
+      <button id="download" type="button" class="primary">⬇ Descargar imagen</button>
+      <button id="share" type="button" class="primary" hidden>Compartir</button>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
