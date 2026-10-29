@@ -31,6 +31,7 @@
 
   let state = defaults();
   state.mode = 7;
+  state.bench = '';
   state.info = { venue: '', time: '', price: '', account: '', showAccount: true };
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
@@ -189,33 +190,16 @@
   }
 
   function fitText(text, maxW) {
-    while (ctx.measureText(text).width > maxW && text.length > 3) text = text.slice(0, -1);
-    return text;
+    if (ctx.measureText(text).width <= maxW) return text;
+    while (ctx.measureText(text + '…').width > maxW && text.length > 1) text = text.slice(0, -1);
+    return text.trimEnd() + '…';
   }
 
-  // Banca: los nombres que superan los jugadores de cancha de cada equipo
-  function benchLayout() {
-    const cols = [state.a, state.b]
-      .map(team => ({ team, names: parseNames(team.names).slice(maxPlayers()) }))
-      .filter(c => c.names.length);
-    if (!cols.length) return null;
-    const cardW = W - 160, pad = 36, colW = (cardW - pad * (cols.length + 1)) / cols.length;
-    const chipH = 50, gap = 12, headH = 62;
-    ctx.font = '600 26px ' + FONT;
-    cols.forEach(col => {
-      let x = 0, row = 0;
-      col.chips = col.names.map(n => {
-        const text = fitText(n, colW - 40);
-        const w = ctx.measureText(text).width + 40;
-        if (x > 0 && x + w > colW) { x = 0; row++; }
-        const chip = { text, w, x, row };
-        x += w + gap;
-        return chip;
-      });
-      col.h = headH + (row + 1) * (chipH + gap) - gap;
-    });
-    const height = pad * 2 + Math.max(...cols.map(c => c.h));
-    return { cols, cardW, pad, colW, chipH, gap, headH, height };
+  // Banca: pozo común. Suplentes escritos + los que sobran de cada equipo
+  const SIDE = 330; // ancho extra de la imagen cuando hay banca
+  function benchNames() {
+    const over = (t) => parseNames(t.names).slice(maxPlayers());
+    return [...over(state.a), ...over(state.b), ...parseNames(state.bench || '')];
   }
 
   function headerLines() {
@@ -236,31 +220,32 @@
     const hasVenue = !!(state.info.venue || '').trim();
     const hasChips = !!((state.info.time || '').trim() || formatPrice(state.info.price));
     const HH = 62 + (hasVenue ? 70 : 0) + (hasChips ? 74 : 0) + (hasChips ? 56 : hasVenue ? 44 : 36);
-    const bench = benchLayout();
-    const BH = bench ? bench.height + 36 : 0;
+    const bench = benchNames();
+    const TW = W + (bench.length ? SIDE : 0);
+    const BH = 0;
     const FH = foot.length ? 60 + 90 + foot.length * 44 : 40;
-    canvas.height = HH + H + BH + FH; // reinicia el contexto
-    ctx.fillStyle = BG; ctx.fillRect(0, 0, W, canvas.height);
+    canvas.width = TW; canvas.height = HH + H + BH + FH; // reinicia el contexto
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, TW, canvas.height);
 
     // encabezado
     ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
     ctx.font = '600 22px ' + FONT;
     if ('letterSpacing' in ctx) ctx.letterSpacing = '6px';
     ctx.fillStyle = '#4ade80';
-    ctx.fillText(`PILSEN FC  ·  FÚTBOL ${state.mode}`, W / 2 + 3, 62);
+    ctx.fillText(`PILSEN FC  ·  FÚTBOL ${state.mode}`, TW / 2 + 3, 62);
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
     let y = 62;
     if (hasVenue) {
       y += 70;
       ctx.font = '800 56px ' + FONT; ctx.fillStyle = '#ffffff';
-      ctx.fillText(fitText((state.info.venue || '').trim(), W - 120), W / 2, y);
+      ctx.fillText(fitText((state.info.venue || '').trim(), TW - 120), TW / 2, y);
     }
     if (hasChips) {
       y += 74;
       const chips = [(state.info.time || '').trim(), formatPrice(state.info.price)].filter(Boolean);
       ctx.font = '600 32px ' + FONT;
       const widths = chips.map(c => ctx.measureText(c).width + 56), gap = 16;
-      let x = (W - (widths.reduce((a, b) => a + b, 0) + gap * (chips.length - 1))) / 2;
+      let x = (TW - (widths.reduce((a, b) => a + b, 0) + gap * (chips.length - 1))) / 2;
       chips.forEach((c, k) => {
         ctx.fillStyle = 'rgba(255,255,255,.1)';
         ctx.beginPath(); ctx.roundRect(x, y - 30, widths[k], 60, 30); ctx.fill();
@@ -277,46 +262,45 @@
     drawTeam(state.b, false);
     ctx.restore();
 
-    // banca
-    if (bench) {
-      const cx0 = 80, cy0 = HH + H + 6;
+    // banca (columna a un costado de la cancha)
+    if (bench.length) {
+      const px = W - 14, pw = TW - px - 40, pad = 26, rowH = 52, headH = 74;
+      const cap = Math.floor((PH - headH - pad) / rowH);
+      const list = bench.slice(0, cap);
+      const ph = headH + list.length * rowH + pad;
+      const py = HH + PY;
       ctx.fillStyle = 'rgba(255,255,255,.07)';
-      ctx.beginPath(); ctx.roundRect(cx0, cy0, bench.cardW, bench.height, 28); ctx.fill();
-      bench.cols.forEach((col, i) => {
-        const x0 = cx0 + bench.pad + i * (bench.colW + bench.pad), y1 = cy0 + bench.pad;
-        ctx.fillStyle = col.team.color; ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.arc(x0 + 10, y1 + 14, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        ctx.font = '600 20px ' + FONT;
-        if ('letterSpacing' in ctx) ctx.letterSpacing = '4px';
-        ctx.fillStyle = '#4ade80';
-        ctx.fillText(`BANCA  ·  ${(col.team.name || '').toUpperCase()}`, x0 + 30, y1 + 15);
-        if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-        ctx.font = '600 26px ' + FONT;
-        col.chips.forEach(ch => {
-          const cx = x0 + ch.x, cy = y1 + bench.headH + ch.row * (bench.chipH + bench.gap);
-          ctx.fillStyle = 'rgba(255,255,255,.1)';
-          ctx.beginPath(); ctx.roundRect(cx, cy, ch.w, bench.chipH, bench.chipH / 2); ctx.fill();
-          ctx.fillStyle = '#e7f5ec';
-          ctx.fillText(ch.text, cx + 20, cy + bench.chipH / 2 + 1);
-        });
+      ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 28); ctx.fill();
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.font = '600 20px ' + FONT;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '5px';
+      ctx.fillStyle = '#4ade80';
+      ctx.fillText('BANCA', px + pad, py + 44);
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+      ctx.font = '600 27px ' + FONT;
+      list.forEach((n, k) => {
+        const cy = py + headH + k * rowH + rowH / 2;
+        ctx.fillStyle = 'rgba(255,255,255,.35)';
+        ctx.beginPath(); ctx.arc(px + pad + 5, cy, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e7f5ec';
+        ctx.fillText(fitText(n, pw - pad * 2 - 28), px + pad + 26, cy + 1);
       });
     }
 
     // pie
     const y0 = HH + H + BH;
     if (foot.length) {
-      const cw = W - 160, ch = 50 + foot.length * 44 + 30, cx0 = 80, cy0 = y0 + 6;
+      const cw = TW - 160, ch = 50 + foot.length * 44 + 30, cx0 = 80, cy0 = y0 + 6;
       ctx.fillStyle = 'rgba(255,255,255,.07)';
       ctx.beginPath(); ctx.roundRect(cx0, cy0, cw, ch, 28); ctx.fill();
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.font = '600 20px ' + FONT;
       if ('letterSpacing' in ctx) ctx.letterSpacing = '5px';
       ctx.fillStyle = '#4ade80';
-      ctx.fillText('DATOS PARA TRANSFERIR', W / 2 + 2, cy0 + 40);
+      ctx.fillText('DATOS PARA TRANSFERIR', TW / 2 + 2, cy0 + 40);
       if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
       ctx.font = '600 31px ' + FONT; ctx.fillStyle = '#ffffff';
-      foot.forEach((line, k) => ctx.fillText(fitText(line, cw - 60), W / 2, cy0 + 90 + k * 44));
+      foot.forEach((line, k) => ctx.fillText(fitText(line, cw - 60), TW / 2, cy0 + 90 + k * 44));
     }
   }
 
@@ -328,7 +312,7 @@
       const n = parseNames(state[t].names).length;
       const el = document.getElementById('count-' + t);
       const max = maxPlayers();
-      el.textContent = n > max ? `${max} en cancha · ${n - max} en banca` : `${n} de ${max} jugadores`;
+      el.textContent = n > max ? `${max} en cancha · ${n - max} a la banca` : `${n} de ${max} jugadores`;
     }
     save(); render();
   }
@@ -389,13 +373,18 @@
     el.value = state.info[k] || '';
     el.addEventListener('input', () => { state.info[k] = el.value; update(); });
   });
+  const bn = document.getElementById('info-bench');
+  bn.value = state.bench || '';
+  bn.addEventListener('input', () => { state.bench = bn.value; update(); });
+
   const showAcc = document.getElementById('info-show-account');
   showAcc.checked = !!state.info.showAccount;
   showAcc.addEventListener('change', () => { state.info.showAccount = showAcc.checked; update(); });
 
   document.getElementById('clear').onclick = () => {
     if (!confirm('¿Borrar todos los nombres?')) return;
-    state.a.names = ''; state.b.names = '';
+    state.a.names = ''; state.b.names = ''; state.bench = '';
+    document.getElementById('info-bench').value = '';
     document.getElementById('names-a').value = ''; document.getElementById('names-b').value = '';
     update();
   };
