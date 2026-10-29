@@ -49,10 +49,12 @@
 
   const canvas = document.getElementById('pitch');
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = 1600; // H = alto de la cancha
+  const W = 1080;
+  const TARGET_H = 1500; // proporción ~3:4 para que WhatsApp no recorte la miniatura
 
-  // Cancha
-  const PX = 50, PY = 50, PW = W - 100, PH = H - 100, HALF = PH / 2;
+  // Cancha (alto variable: se ajusta a lo que sobra del encabezado, banca y pie)
+  const PX = 40, PW = W - 80;
+  let PH = 1000, HALF = 500;
 
   const parseNames = (text) => text.split('\n').map(s => s.trim()).filter(Boolean);
 
@@ -69,30 +71,57 @@
     return '#' + [n >> 16, (n >> 8) & 255, n & 255].map(v => c(v).toString(16).padStart(2, '0')).join('');
   }
 
-  function drawPitch() {
-    const stripes = 10, sh = PH / stripes;
-    ctx.save();
-    ctx.beginPath(); ctx.roundRect(PX, PY, PW, PH, 28); ctx.clip();
-    for (let i = 0; i < stripes; i++) {
-      ctx.fillStyle = i % 2 ? '#1d6b39' : '#217a41';
-      ctx.fillRect(PX, PY + i * sh, PW, sh);
+  // Textura de pasto: hebras cortas y puntos sobre un mosaico que se repite
+  let grass = null;
+  function grassPattern() {
+    if (grass) return grass;
+    const S = 360, c = document.createElement('canvas');
+    c.width = c.height = S;
+    const g = c.getContext('2d');
+    let seed = 11;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 4200; i++) {
+      const x = rnd() * S, y = rnd() * S, len = 6 + rnd() * 12, ang = (rnd() - 0.5) * 0.8;
+      g.strokeStyle = rnd() < 0.5 ? `rgba(190,255,190,${0.04 + rnd() * 0.06})` : `rgba(0,25,5,${0.05 + rnd() * 0.07})`;
+      g.lineWidth = 1.2 + rnd() * 1.4; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.sin(ang) * len, y - Math.cos(ang) * len); g.stroke();
     }
+    for (let i = 0; i < 700; i++) {
+      g.fillStyle = rnd() < 0.5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.07)';
+      g.beginPath(); g.arc(rnd() * S, rnd() * S, 1 + rnd() * 2.2, 0, Math.PI * 2); g.fill();
+    }
+    grass = ctx.createPattern(c, 'repeat');
+    return grass;
+  }
+
+  function drawPitch() {
+    const stripes = 12, sh = PH / stripes;
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(PX, 0, PW, PH, 28); ctx.clip();
+    for (let i = 0; i < stripes; i++) {
+      ctx.fillStyle = i % 2 ? '#1c6a38' : '#237d43';
+      ctx.fillRect(PX, i * sh, PW, sh);
+    }
+    ctx.fillStyle = grassPattern(); ctx.fillRect(PX, 0, PW, PH);
+    const vg = ctx.createRadialGradient(W / 2, PH / 2, PH * 0.25, W / 2, PH / 2, PH * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,20,5,.28)');
+    ctx.fillStyle = vg; ctx.fillRect(PX, 0, PW, PH);
     ctx.restore();
-    const line = 'rgba(255,255,255,.55)';
+    const line = 'rgba(255,255,255,.6)';
     ctx.strokeStyle = line; ctx.fillStyle = line; ctx.lineWidth = 4; ctx.lineJoin = 'round';
-    const inset = 22, ix = PX + inset, iy = PY + inset, iw = PW - inset * 2, ih = PH - inset * 2, mid = PY + HALF;
+    const inset = 20, ix = PX + inset, iy = inset, iw = PW - inset * 2, ih = PH - inset * 2, mid = PH / 2;
     ctx.beginPath(); ctx.roundRect(ix, iy, iw, ih, 6); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(ix, mid); ctx.lineTo(ix + iw, mid); ctx.stroke();
-    ctx.beginPath(); ctx.arc(W / 2, mid, 105, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W / 2, mid, 95, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.arc(W / 2, mid, 7, 0, Math.PI * 2); ctx.fill();
     for (const top of [true, false]) {
       const dir = top ? 1 : -1, y0 = top ? iy : iy + ih;
-      const bw = 500, bh = 180, gw = 220, gh = 64;
+      const bw = 500, bh = 150, gw = 220, gh = 54;
       ctx.strokeRect(W / 2 - bw / 2, top ? y0 : y0 - bh, bw, bh);
       ctx.strokeRect(W / 2 - gw / 2, top ? y0 : y0 - gh, gw, gh);
-      ctx.beginPath(); ctx.arc(W / 2, y0 + dir * 125, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W / 2, y0 + dir * 105, 5, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath();
-      ctx.arc(W / 2, y0 + dir * 125, 88, top ? 0.66 : Math.PI + 0.66, top ? Math.PI - 0.66 : 2 * Math.PI - 0.66);
+      ctx.arc(W / 2, y0 + dir * 105, 80, top ? 0.66 : Math.PI + 0.66, top ? Math.PI - 0.66 : 2 * Math.PI - 0.66);
       ctx.stroke();
     }
   }
@@ -105,17 +134,17 @@
     ctx.closePath();
   }
 
+  const SHIRT_R = 36;
   function drawShirt(cx, cy, color) {
-    const r = 42;
+    const r = SHIRT_R;
     const light = lum(color) > 0.6;
     const outline = light ? 'rgba(15,26,20,.45)' : 'rgba(0,0,0,.45)';
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 6;
+    ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 5;
     const g = ctx.createLinearGradient(0, cy - r, 0, cy + r);
     g.addColorStop(0, shade(color, light ? 0 : 0.07)); g.addColorStop(1, shade(color, light ? -0.1 : -0.07));
     shirtPath(cx, cy, r); ctx.fillStyle = g; ctx.fill();
     ctx.restore();
-    // mangas con un tono apenas distinto
     ctx.save();
     shirtPath(cx, cy, r); ctx.clip();
     ctx.fillStyle = shade(color, light ? -0.1 : -0.09);
@@ -123,30 +152,32 @@
     ctx.fillRect(cx + r * 0.5, cy - r, r * 0.6, r * 1.1);
     ctx.restore();
     shirtPath(cx, cy, r); ctx.lineWidth = 2.5; ctx.strokeStyle = outline; ctx.stroke();
-    // cuello
     ctx.beginPath();
     ctx.moveTo(cx - 0.38 * r, cy - 0.9 * r);
     ctx.quadraticCurveTo(cx, cy - 0.55 * r, cx + 0.38 * r, cy - 0.9 * r);
     ctx.lineWidth = 4; ctx.strokeStyle = light ? 'rgba(15,26,20,.45)' : shade(color, 0.28); ctx.stroke();
   }
 
+  // Nombre grande, apoyado sobre la base de la camiseta
   function drawName(cx, cy, name) {
-    ctx.font = '600 27px ' + FONT;
+    const big = state.mode === 7;
+    ctx.font = `700 ${big ? 32 : 29}px ${FONT}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const maxText = big ? 210 : 148;
     let text = name;
-    while (ctx.measureText(text).width > (state.mode === 11 ? 150 : 190) && text.length > 3) text = text.slice(0, -1);
+    while (ctx.measureText(text).width > maxText && text.length > 3) text = text.slice(0, -1);
     if (text !== name) text = text.trimEnd() + '…';
-    const tw = ctx.measureText(text).width, bw = tw + 30, bh = 40;
-    ctx.fillStyle = 'rgba(6,20,13,.72)';
+    const tw = ctx.measureText(text).width, bw = tw + 28, bh = big ? 44 : 42;
+    ctx.fillStyle = 'rgba(4,16,10,.86)';
     ctx.beginPath(); ctx.roundRect(cx - bw / 2, cy - bh / 2, bw, bh, bh / 2); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.fillText(text, cx, cy + 1);
   }
 
-  // Posiciones (x, depth) de cada jugador: arquero primero, luego de defensa a ataque
+  // Posiciones: x en fracción del ancho, d en fracción de la mitad de la cancha (desde su arco)
   function positions(formationKey) {
     const lines = formations()[formationKey].lines;
-    const out = [{ x: 0.5, d: 115 }];
-    const n = lines.length, d0 = 245, d1 = 640;
+    const out = [{ x: 0.5, d: 0.105 }];
+    const n = lines.length, d0 = 0.285, d1 = 0.88;
     lines.forEach((count, i) => {
       const d = n === 1 ? d0 : d0 + (d1 - d0) * i / (n - 1);
       for (let k = 0; k < count; k++) {
@@ -164,23 +195,23 @@
     names.forEach((name, i) => {
       const p = pos[i];
       const cx = PX + PW * p.x;
-      const cy = top ? PY + p.d : PY + PH - p.d;
+      const cy = top ? p.d * HALF : PH - p.d * HALF;
       drawShirt(cx, cy, team.color);
-      drawName(cx, cy + 66, name);
+      drawName(cx, cy + SHIRT_R + 2, name);
     });
     // etiqueta del equipo
     const label = (team.name || '').trim();
     if (label) {
-      ctx.font = '700 28px ' + FONT;
+      ctx.font = '700 26px ' + FONT;
       const text = label.toUpperCase();
       const tw = ctx.measureText(text).width;
-      const bw = tw + 70, bh = 50, bx = PX + 44, by = top ? PY + 44 : PY + PH - 44 - bh;
+      const bw = tw + 66, bh = 46, bx = PX + 40, by = top ? 40 : PH - 40 - bh;
       ctx.fillStyle = '#ffffff';
       ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, bh / 2); ctx.fill();
       ctx.fillStyle = team.color; ctx.strokeStyle = 'rgba(15,26,20,.35)'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(bx + 27, by + bh / 2, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(bx + 26, by + bh / 2, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#0f1a14'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.fillText(text, bx + 49, by + bh / 2 + 1);
+      ctx.fillText(text, bx + 46, by + bh / 2 + 1);
     }
   }
 
@@ -201,15 +232,17 @@
     return [...over(state.a), ...over(state.b), ...parseNames(state.bench || '')];
   }
 
+  const CARD_X = 40, CARD_W = W - 80;
+
   // Una sola fila si cabe (achicando la letra); si no, continúa en otra línea para no perder nombres
   function benchLayout(names) {
     if (!names.length) return null;
-    const bw = W - 160, label = 36, lw = 120, maxW = bw - label - lw - 36;
+    const label = 34, lw = 118, maxW = CARD_W - label - lw - 34;
     const text = names.join('  ·  ');
     let size = 28;
     ctx.font = `600 ${size}px ${FONT}`;
     while (size > 20 && ctx.measureText(text).width > maxW) { size -= 1; ctx.font = `600 ${size}px ${FONT}`; }
-    if (ctx.measureText(text).width <= maxW) return { lines: [text], size, lw, bh: 64 };
+    if (ctx.measureText(text).width <= maxW) return { lines: [text], size, lw, bh: 62 };
     size = 24; ctx.font = `600 ${size}px ${FONT}`;
     const lines = []; let cur = '';
     names.forEach(n => {
@@ -217,59 +250,65 @@
       if (cur && ctx.measureText(next).width > maxW) { lines.push(cur); cur = n; } else cur = next;
     });
     lines.push(cur);
-    return { lines, size, lw, bh: 40 + lines.length * 36 };
+    return { lines, size, lw, bh: 34 + lines.length * 34 };
   }
 
-  function headerLines() {
+  // Datos de transferencia en texto corrido, hasta 3 líneas, para ahorrar alto
+  function footerLayout() {
     const i = state.info;
-    const l1 = (i.venue || '').trim();
-    const l2 = [(i.time || '').trim(), formatPrice(i.price)].filter(Boolean).join('  ·  ');
-    return [l1, l2].filter(Boolean);
-  }
-
-  function footerLines() {
-    const i = state.info;
-    if (!i.showAccount) return [];
-    return (i.account || '').split('\n').map(s => s.trim()).filter(Boolean).slice(0, 6);
+    if (!i.showAccount) return null;
+    const parts = (i.account || '').split('\n').map(s => s.trim()).filter(Boolean).slice(0, 8);
+    if (!parts.length) return null;
+    ctx.font = '600 27px ' + FONT;
+    const maxW = CARD_W - 70, rows = []; let cur = '';
+    parts.forEach(p => {
+      const next = cur ? cur + '  ·  ' + p : p;
+      if (cur && ctx.measureText(next).width > maxW) { rows.push(cur); cur = p; } else cur = next;
+    });
+    rows.push(cur);
+    return { rows: rows.slice(0, 3), h: 62 + Math.min(rows.length, 3) * 38 };
   }
 
   function render() {
-    const head = headerLines(), foot = footerLines();
     const hasVenue = !!(state.info.venue || '').trim();
     const hasChips = !!((state.info.time || '').trim() || formatPrice(state.info.price));
-    const HH = 62 + (hasVenue ? 70 : 0) + (hasChips ? 74 : 0) + (hasChips ? 56 : hasVenue ? 44 : 36);
+    let ey = 44;                          // centro del texto de marca
+    const venueY = hasVenue ? (ey += 58) : 0;
+    const chipsY = hasChips ? (ey += 62) : 0;
+    const HH = ey + (hasChips ? 26 : hasVenue ? 30 : 14) + 22;
+
     const bench = benchNames();
-    const TW = W;
     const bl = benchLayout(bench);
-    const BH = bl ? bl.bh + 32 : 0;
-    const FH = foot.length ? 60 + 90 + foot.length * 44 : 40;
-    canvas.width = TW; canvas.height = HH + H + BH + FH; // reinicia el contexto
-    ctx.fillStyle = BG; ctx.fillRect(0, 0, TW, canvas.height);
+    const fl = footerLayout();
+    const extra = (bl ? bl.bh + 16 : 0) + (fl ? fl.h + 16 : 0) + 26;
+    PH = Math.max(780, Math.min(1260, TARGET_H - HH - extra - 18));
+    HALF = PH / 2;
+    const CH = HH + PH + 18 + extra;
+
+    canvas.width = W; canvas.height = CH; // reinicia el contexto
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, W, CH);
 
     // encabezado
     ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-    ctx.font = '600 22px ' + FONT;
+    ctx.font = '600 21px ' + FONT;
     if ('letterSpacing' in ctx) ctx.letterSpacing = '6px';
     ctx.fillStyle = '#4ade80';
-    ctx.fillText(`PILSEN FC  ·  FÚTBOL ${state.mode}`, TW / 2 + 3, 62);
+    ctx.fillText(`PILSEN FC  ·  FÚTBOL ${state.mode}`, W / 2 + 3, 44);
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-    let y = 62;
     if (hasVenue) {
-      y += 70;
-      ctx.font = '800 56px ' + FONT; ctx.fillStyle = '#ffffff';
-      ctx.fillText(fitText((state.info.venue || '').trim(), TW - 120), TW / 2, y);
+      ctx.font = '800 50px ' + FONT; ctx.fillStyle = '#ffffff';
+      ctx.fillText(fitText((state.info.venue || '').trim(), W - 100), W / 2, venueY);
     }
     if (hasChips) {
-      y += 74;
       const chips = [(state.info.time || '').trim(), formatPrice(state.info.price)].filter(Boolean);
-      ctx.font = '600 32px ' + FONT;
-      const widths = chips.map(c => ctx.measureText(c).width + 56), gap = 16;
-      let x = (TW - (widths.reduce((a, b) => a + b, 0) + gap * (chips.length - 1))) / 2;
+      ctx.font = '600 29px ' + FONT;
+      const widths = chips.map(c => ctx.measureText(c).width + 50), gap = 14;
+      let x = (W - (widths.reduce((a, b) => a + b, 0) + gap * (chips.length - 1))) / 2;
       chips.forEach((c, k) => {
         ctx.fillStyle = 'rgba(255,255,255,.1)';
-        ctx.beginPath(); ctx.roundRect(x, y - 30, widths[k], 60, 30); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(x, chipsY - 26, widths[k], 52, 26); ctx.fill();
         ctx.fillStyle = '#e7f5ec'; ctx.textAlign = 'center';
-        ctx.fillText(c, x + widths[k] / 2, y + 1);
+        ctx.fillText(c, x + widths[k] / 2, chipsY + 1);
         x += widths[k] + gap;
       });
     }
@@ -281,36 +320,36 @@
     drawTeam(state.b, false);
     ctx.restore();
 
+    let y = HH + PH + 18;
+
     // banca: fila de texto bajo la cancha
     if (bl) {
-      const bx = 80, bw = TW - 160, by = HH + H + 6;
       ctx.fillStyle = 'rgba(255,255,255,.07)';
-      ctx.beginPath(); ctx.roundRect(bx, by, bw, bl.bh, Math.min(32, bl.bh / 2)); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(CARD_X, y, CARD_W, bl.bh, Math.min(30, bl.bh / 2)); ctx.fill();
       ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       ctx.font = '600 20px ' + FONT;
       if ('letterSpacing' in ctx) ctx.letterSpacing = '5px';
       ctx.fillStyle = '#4ade80';
-      const firstY = bl.lines.length === 1 ? by + bl.bh / 2 : by + 20 + 18;
-      ctx.fillText('BANCA', bx + 36, firstY + 1);
+      const firstY = bl.lines.length === 1 ? y + bl.bh / 2 : y + 17 + 17;
+      ctx.fillText('BANCA', CARD_X + 34, firstY + 1);
       if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
       ctx.font = `600 ${bl.size}px ${FONT}`; ctx.fillStyle = '#e7f5ec';
-      bl.lines.forEach((line, k) => ctx.fillText(line, bx + 36 + bl.lw, firstY + 1 + k * 36));
+      bl.lines.forEach((line, k) => ctx.fillText(line, CARD_X + 34 + bl.lw, firstY + 1 + k * 34));
+      y += bl.bh + 16;
     }
 
     // pie
-    const y0 = HH + H + BH;
-    if (foot.length) {
-      const cw = TW - 160, ch = 50 + foot.length * 44 + 30, cx0 = 80, cy0 = y0 + 6;
+    if (fl) {
       ctx.fillStyle = 'rgba(255,255,255,.07)';
-      ctx.beginPath(); ctx.roundRect(cx0, cy0, cw, ch, 28); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(CARD_X, y, CARD_W, fl.h, 28); ctx.fill();
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = '600 20px ' + FONT;
+      ctx.font = '600 19px ' + FONT;
       if ('letterSpacing' in ctx) ctx.letterSpacing = '5px';
       ctx.fillStyle = '#4ade80';
-      ctx.fillText('DATOS PARA TRANSFERIR', TW / 2 + 2, cy0 + 40);
+      ctx.fillText('DATOS PARA TRANSFERIR', W / 2 + 2, y + 30);
       if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-      ctx.font = '600 31px ' + FONT; ctx.fillStyle = '#ffffff';
-      foot.forEach((line, k) => ctx.fillText(fitText(line, cw - 60), TW / 2, cy0 + 90 + k * 44));
+      ctx.font = '600 27px ' + FONT; ctx.fillStyle = '#ffffff';
+      fl.rows.forEach((row, k) => ctx.fillText(fitText(row, CARD_W - 50), W / 2, y + 66 + k * 38));
     }
   }
 
