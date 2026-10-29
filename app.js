@@ -15,7 +15,13 @@
   };
   const formations = () => FORMATIONS_BY_MODE[state.mode];
   const maxPlayers = () => state.mode;
-  const PRESETS = ['#dc2626', '#ffffff', '#2563eb', '#facc15', '#111827', '#16a34a', '#f97316', '#9333ea'];
+  const PRESETS = [
+    { hex: '#dc2626', name: 'Rojo' },
+    { hex: '#ffffff', name: 'Blanco' },
+    { hex: '#111827', name: 'Negro' },
+    { hex: '#2563eb', name: 'Azul' },
+  ];
+  const presetOf = (hex) => PRESETS.find(p => p.hex === String(hex).toLowerCase());
   const STORE_KEY = 'futbol7pilsen:v1'; // misma clave para conservar lo ya guardado
 
   const defaults = () => ({
@@ -30,6 +36,12 @@
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
     if (saved && saved.a && saved.b) state = { ...state, ...saved, info: { ...state.info, ...(saved.info || {}) } };
   } catch (e) {}
+
+  // el nombre del equipo siempre sigue al color de la camiseta
+  [['a', 0], ['b', 1]].forEach(([t, fallback]) => {
+    const p = presetOf(state[t].color) || PRESETS[fallback];
+    state[t].color = p.hex; state[t].name = p.name;
+  });
 
   const FONT = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
   const BG = '#0b1f17';
@@ -282,17 +294,15 @@
   function buildTeamUI(t) {
     const colors = document.querySelector(`.colors[data-team="${t}"]`);
     colors.innerHTML = '';
-    PRESETS.forEach(c => {
+    PRESETS.forEach(p => {
       const b = document.createElement('button');
-      b.type = 'button'; b.className = 'swatch'; b.style.background = c; b.setAttribute('aria-label', 'Color ' + c);
-      b.classList.toggle('active', state[t].color.toLowerCase() === c);
-      b.onclick = () => { state[t].color = c; buildTeamUI(t); update(); };
+      b.type = 'button'; b.className = 'swatch';
+      b.innerHTML = `<i style="background:${p.hex}"></i>${p.name}`;
+      b.classList.toggle('active', state[t].color === p.hex);
+      b.onclick = () => { state[t].color = p.hex; state[t].name = p.name; buildTeamUI(t); update(); };
       colors.appendChild(b);
     });
-    const pick = document.createElement('input');
-    pick.type = 'color'; pick.value = state[t].color; pick.title = 'Otro color';
-    pick.oninput = () => { state[t].color = pick.value; colors.querySelectorAll('.swatch').forEach(s => s.classList.remove('active')); update(); };
-    colors.appendChild(pick);
+    document.getElementById('tname-' + t).textContent = state[t].name;
 
     const fm = document.querySelector(`.formations[data-team="${t}"]`);
     fm.innerHTML = '';
@@ -311,9 +321,6 @@
     const ta = document.getElementById('names-' + t);
     ta.value = state[t].names;
     ta.addEventListener('input', () => { state[t].names = ta.value; update(); });
-    const nm = document.querySelector(`.team-name[data-team="${t}"]`);
-    nm.value = state[t].name;
-    nm.addEventListener('input', () => { state[t].name = nm.value; update(); });
   }
 
   const modeBtns = document.querySelectorAll('#mode button');
