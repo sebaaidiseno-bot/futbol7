@@ -15,14 +15,15 @@
   });
 
   let state = defaults();
+  state.info = { venue: '', time: '', price: '', account: '', showAccount: true };
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
-    if (saved && saved.a && saved.b) state = saved;
+    if (saved && saved.a && saved.b) state = { ...state, ...saved, info: { ...state.info, ...(saved.info || {}) } };
   } catch (e) {}
 
   const canvas = document.getElementById('pitch');
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
+  const W = canvas.width, H = 1600; // H = alto de la cancha
 
   // Cancha
   const PX = 50, PY = 50, PW = W - 100, PH = H - 100, HALF = PH / 2;
@@ -156,13 +157,62 @@
     }
   }
 
+  const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+
+  function formatPrice(v) {
+    const n = parseInt(String(v).replace(/\D/g, ''), 10);
+    return isNaN(n) ? '' : '$' + n.toLocaleString('es-CL') + ' por jugador';
+  }
+
+  function fitText(text, maxW) {
+    while (ctx.measureText(text).width > maxW && text.length > 3) text = text.slice(0, -1);
+    return text;
+  }
+
+  function headerLines() {
+    const i = state.info;
+    const l1 = (i.venue || '').trim();
+    const l2 = [(i.time || '').trim(), formatPrice(i.price)].filter(Boolean).join('  ·  ');
+    return [l1, l2].filter(Boolean);
+  }
+
+  function footerLines() {
+    const i = state.info;
+    if (!i.showAccount) return [];
+    return (i.account || '').split('\n').map(s => s.trim()).filter(Boolean).slice(0, 6);
+  }
+
   function render() {
+    const head = headerLines(), foot = footerLines();
+    const HH = head.length ? 60 + head.length * 62 : 0;
+    const FH = foot.length ? 80 + foot.length * 38 : 0;
+    canvas.height = HH + H + FH; // reinicia el contexto
+    ctx.fillStyle = '#0b3d1d'; ctx.fillRect(0, 0, W, canvas.height);
+
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    head.forEach((line, k) => {
+      ctx.font = (k === 0 ? '800 50px ' : '700 38px ') + FONT;
+      ctx.fillStyle = k === 0 ? '#ffffff' : '#bbf7d0';
+      ctx.fillText(fitText(line, W - 100), W / 2, 55 + k * 62);
+    });
+
+    ctx.save(); ctx.translate(0, HH);
     drawPitch();
     drawTeam(state.a, true);
     drawTeam(state.b, false);
-    ctx.font = '600 22px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+    ctx.font = '600 22px ' + FONT; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.fillText('futbol7pilsen', W - PX - 14, H - PY - 12 - 0);
+    ctx.fillText('futbol7pilsen', W - PX - 14, H - PY - 12);
+    ctx.restore();
+
+    if (foot.length) {
+      const y0 = HH + H;
+      ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+      ctx.font = '700 30px ' + FONT; ctx.fillStyle = '#bbf7d0';
+      ctx.fillText('DATOS PARA TRANSFERIR', W / 2, y0 + 10);
+      ctx.font = '600 30px ' + FONT; ctx.fillStyle = '#ffffff';
+      foot.forEach((line, k) => ctx.fillText(fitText(line, W - 100), W / 2, y0 + 62 + k * 38));
+    }
   }
 
   // ---------- UI ----------
@@ -214,6 +264,16 @@
     nm.value = state[t].name;
     nm.addEventListener('input', () => { state[t].name = nm.value; update(); });
   }
+
+  const infoIds = { venue: 'info-venue', time: 'info-time', price: 'info-price', account: 'info-account' };
+  Object.entries(infoIds).forEach(([k, id]) => {
+    const el = document.getElementById(id);
+    el.value = state.info[k] || '';
+    el.addEventListener('input', () => { state.info[k] = el.value; update(); });
+  });
+  const showAcc = document.getElementById('info-show-account');
+  showAcc.checked = !!state.info.showAccount;
+  showAcc.addEventListener('change', () => { state.info.showAccount = showAcc.checked; update(); });
 
   document.getElementById('clear').onclick = () => {
     if (!confirm('¿Borrar todos los nombres?')) return;

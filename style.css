@@ -30,3 +30,8 @@ button.primary { background:var(--accent); color:#052e16; font-size:1.05rem; }
 button.secondary { background:var(--card); color:var(--text); border:1px solid var(--line); }
 .preview { text-align:center; }
 canvas { width:100%; max-width:540px; height:auto; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.45); }
+.info { margin-top:16px; }
+.info input[type=text] { width:100%; font:inherit; color:var(--text); background:#0b1220; border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:12px; }
+.info input[type=text]:focus { outline:2px solid var(--accent); }
+.info .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.check { display:flex; gap:8px; align-items:center; margin-top:10px; font-size:.9rem; color:var(--muted); }

@@ -35,6 +35,25 @@
     </article>
   </section>
 
+  <section class="team info">
+    <h2>Datos del partido</h2>
+    <label class="lbl" for="info-venue">Cancha</label>
+    <input id="info-venue" type="text" maxlength="40" placeholder="Ej: Canchas Pilsen">
+    <div class="row">
+      <div>
+        <label class="lbl" for="info-time">Horario</label>
+        <input id="info-time" type="text" maxlength="30" placeholder="Ej: Jueves 21:00">
+      </div>
+      <div>
+        <label class="lbl" for="info-price">Valor por jugador ($)</label>
+        <input id="info-price" type="text" inputmode="numeric" maxlength="9" placeholder="Ej: 5000">
+      </div>
+    </div>
+    <label class="lbl" for="info-account">Cuenta para transferir (una línea por dato; queda guardada)</label>
+    <textarea id="info-account" rows="4" placeholder="Nombre Apellido&#10;RUT 12.345.678-9&#10;Banco - Cuenta Vista 123456789&#10;correo@ejemplo.cl"></textarea>
+    <label class="check"><input type="checkbox" id="info-show-account"> Mostrar la cuenta en la imagen</label>
+  </section>
+
   <section class="actions">
     <button id="shuffle" type="button" class="secondary">🔀 Mezclar equipos</button>
     <button id="clear" type="button" class="secondary">Limpiar</button>
