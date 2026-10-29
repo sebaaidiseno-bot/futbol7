@@ -4,69 +4,93 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fútbol 7 Pilsen · Formaciones</title>
-<meta name="description" content="Crea la formación de tu partido de fútbol 7 y descarga la imagen.">
-<meta name="theme-color" content="#14532d">
+<meta name="description" content="Arma la formación de tu partido de fútbol 7 y descarga la imagen lista para compartir.">
+<meta name="theme-color" content="#f6f7f4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>⚽ Fútbol 7 Pilsen</h1>
-  <p>Escribe los nombres, elige la formación y descarga la imagen.</p>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 7.2l4 2.9-1.5 4.7h-5L8 10.1z"/><path d="M12 7.2V2.8M16 10.1l4.2-1.4M14.5 14.8l2.6 3.7M9.5 14.8l-2.6 3.7M8 10.1L3.8 8.7"/></svg>
+    <span>Fútbol 7 <b>Pilsen</b></span>
+  </div>
 </header>
 
-<main>
-  <section class="teams">
-    <article class="team" id="team-a">
-      <h2><input class="team-name" data-team="a" value="Rojo" maxlength="18" aria-label="Nombre equipo 1"></h2>
+<div class="layout">
+  <div class="controls">
+
+    <section class="card">
+      <h2><span class="step">1</span>Partido</h2>
+      <label class="field">
+        <span>Cancha</span>
+        <input id="info-venue" type="text" maxlength="40" placeholder="Ej: Canchas Pilsen · Cancha 3">
+      </label>
+      <div class="row">
+        <label class="field">
+          <span>Horario</span>
+          <input id="info-time" type="text" maxlength="30" placeholder="Jueves 21:00">
+        </label>
+        <label class="field">
+          <span>Valor por jugador</span>
+          <div class="money"><i>$</i><input id="info-price" type="text" inputmode="numeric" maxlength="9" placeholder="5000"></div>
+        </label>
+      </div>
+    </section>
+
+    <section class="card team" id="team-a">
+      <h2><span class="step">2</span>Equipo 1</h2>
+      <input class="team-name" data-team="a" value="Rojo" maxlength="18" aria-label="Nombre equipo 1">
+      <div class="sub">Color de camiseta</div>
       <div class="colors" data-team="a"></div>
+      <div class="sub">Formación</div>
       <div class="formations" data-team="a"></div>
-      <label class="lbl" for="names-a">Jugadores (uno por línea, el primero es el arquero)</label>
-      <textarea id="names-a" data-team="a" rows="7" placeholder="Arquero&#10;Defensa 1&#10;Defensa 2&#10;..."></textarea>
+      <label class="field">
+        <span>Jugadores <em>· uno por línea, el primero es el arquero</em></span>
+        <textarea id="names-a" data-team="a" rows="7" placeholder="Arquero&#10;Defensa 1&#10;Defensa 2&#10;..."></textarea>
+      </label>
       <div class="count" id="count-a"></div>
-    </article>
+    </section>
 
-    <article class="team" id="team-b">
-      <h2><input class="team-name" data-team="b" value="Blanco" maxlength="18" aria-label="Nombre equipo 2"></h2>
+    <section class="card team" id="team-b">
+      <h2><span class="step">3</span>Equipo 2</h2>
+      <input class="team-name" data-team="b" value="Blanco" maxlength="18" aria-label="Nombre equipo 2">
+      <div class="sub">Color de camiseta</div>
       <div class="colors" data-team="b"></div>
+      <div class="sub">Formación</div>
       <div class="formations" data-team="b"></div>
-      <label class="lbl" for="names-b">Jugadores (uno por línea, el primero es el arquero)</label>
-      <textarea id="names-b" data-team="b" rows="7" placeholder="Arquero&#10;Defensa 1&#10;Defensa 2&#10;..."></textarea>
+      <label class="field">
+        <span>Jugadores <em>· uno por línea, el primero es el arquero</em></span>
+        <textarea id="names-b" data-team="b" rows="7" placeholder="Arquero&#10;Defensa 1&#10;Defensa 2&#10;..."></textarea>
+      </label>
       <div class="count" id="count-b"></div>
-    </article>
-  </section>
+    </section>
 
-  <section class="team info">
-    <h2>Datos del partido</h2>
-    <label class="lbl" for="info-venue">Cancha</label>
-    <input id="info-venue" type="text" maxlength="40" placeholder="Ej: Canchas Pilsen">
-    <div class="row">
-      <div>
-        <label class="lbl" for="info-time">Horario</label>
-        <input id="info-time" type="text" maxlength="30" placeholder="Ej: Jueves 21:00">
-      </div>
-      <div>
-        <label class="lbl" for="info-price">Valor por jugador ($)</label>
-        <input id="info-price" type="text" inputmode="numeric" maxlength="9" placeholder="Ej: 5000">
-      </div>
+    <section class="card">
+      <h2><span class="step">4</span>Transferencia</h2>
+      <label class="field">
+        <span>Cuenta <em>· una línea por dato, se guarda para la próxima vez</em></span>
+        <textarea id="info-account" rows="4" placeholder="Nombre Apellido&#10;RUT 12.345.678-9&#10;Banco · Cuenta Vista 123456789&#10;correo@ejemplo.cl"></textarea>
+      </label>
+      <label class="switch"><input type="checkbox" id="info-show-account"><i></i><span>Mostrar la cuenta en la imagen</span></label>
+    </section>
+
+    <div class="tools">
+      <button id="shuffle" type="button" class="ghost">Mezclar equipos</button>
+      <button id="clear" type="button" class="ghost">Limpiar nombres</button>
     </div>
-    <label class="lbl" for="info-account">Cuenta para transferir (una línea por dato; queda guardada)</label>
-    <textarea id="info-account" rows="4" placeholder="Nombre Apellido&#10;RUT 12.345.678-9&#10;Banco - Cuenta Vista 123456789&#10;correo@ejemplo.cl"></textarea>
-    <label class="check"><input type="checkbox" id="info-show-account"> Mostrar la cuenta en la imagen</label>
-  </section>
+  </div>
 
-  <section class="actions">
-    <button id="shuffle" type="button" class="secondary">🔀 Mezclar equipos</button>
-    <button id="clear" type="button" class="secondary">Limpiar</button>
-  </section>
-
-  <section class="preview">
+  <aside class="preview">
     <canvas id="pitch" width="1080" height="1600"></canvas>
-    <div class="actions">
-      <button id="download" type="button" class="primary">⬇ Descargar imagen</button>
-      <button id="share" type="button" class="primary" hidden>Compartir</button>
+    <div class="cta">
+      <button id="download" type="button" class="primary">Descargar imagen</button>
+      <button id="share" type="button" class="primary alt" hidden>Compartir</button>
     </div>
-  </section>
-</main>
+  </aside>
+</div>
 
 <script src="app.js"></script>
 </body>

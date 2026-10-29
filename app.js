@@ -21,6 +21,9 @@
     if (saved && saved.a && saved.b) state = { ...state, ...saved, info: { ...state.info, ...(saved.info || {}) } };
   } catch (e) {}
 
+  const FONT = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  const BG = '#0b1f17';
+
   const canvas = document.getElementById('pitch');
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = 1600; // H = alto de la cancha
@@ -44,34 +47,30 @@
   }
 
   function drawPitch() {
-    // pasto con franjas
     const stripes = 10, sh = PH / stripes;
-    ctx.fillStyle = '#0b3d1d'; ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(PX, PY, PW, PH, 28); ctx.clip();
     for (let i = 0; i < stripes; i++) {
-      ctx.fillStyle = i % 2 ? '#2f9e44' : '#37b24d';
+      ctx.fillStyle = i % 2 ? '#1d6b39' : '#217a41';
       ctx.fillRect(PX, PY + i * sh, PW, sh);
     }
-    ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 5; ctx.lineJoin = 'round';
-    ctx.strokeRect(PX, PY, PW, PH);
-    // medio campo
-    ctx.beginPath(); ctx.moveTo(PX, PY + HALF); ctx.lineTo(PX + PW, PY + HALF); ctx.stroke();
-    ctx.beginPath(); ctx.arc(W / 2, PY + HALF, 110, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,.9)';
-    ctx.beginPath(); ctx.arc(W / 2, PY + HALF, 8, 0, Math.PI * 2); ctx.fill();
-    // áreas y arcos (arriba y abajo)
+    ctx.restore();
+    const line = 'rgba(255,255,255,.55)';
+    ctx.strokeStyle = line; ctx.fillStyle = line; ctx.lineWidth = 4; ctx.lineJoin = 'round';
+    const inset = 22, ix = PX + inset, iy = PY + inset, iw = PW - inset * 2, ih = PH - inset * 2, mid = PY + HALF;
+    ctx.beginPath(); ctx.roundRect(ix, iy, iw, ih, 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ix, mid); ctx.lineTo(ix + iw, mid); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W / 2, mid, 105, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W / 2, mid, 7, 0, Math.PI * 2); ctx.fill();
     for (const top of [true, false]) {
-      const dir = top ? 1 : -1, y0 = top ? PY : PY + PH;
-      const bw = 520, bh = 190, gw = 240, gh = 70;
+      const dir = top ? 1 : -1, y0 = top ? iy : iy + ih;
+      const bw = 500, bh = 180, gw = 220, gh = 64;
       ctx.strokeRect(W / 2 - bw / 2, top ? y0 : y0 - bh, bw, bh);
       ctx.strokeRect(W / 2 - gw / 2, top ? y0 : y0 - gh, gw, gh);
-      ctx.beginPath(); ctx.arc(W / 2, y0 + dir * 135, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W / 2, y0 + dir * 125, 5, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath();
-      ctx.arc(W / 2, y0 + dir * 135, 90, top ? 0.65 : Math.PI + 0.65 - 0.0, top ? Math.PI - 0.65 : 2 * Math.PI - 0.65 + 0.0);
+      ctx.arc(W / 2, y0 + dir * 125, 88, top ? 0.66 : Math.PI + 0.66, top ? Math.PI - 0.66 : 2 * Math.PI - 0.66);
       ctx.stroke();
-      // arco
-      ctx.fillStyle = 'rgba(255,255,255,.35)';
-      ctx.fillRect(W / 2 - 80, top ? y0 - 22 : y0, 160, 22);
-      ctx.fillStyle = 'rgba(255,255,255,.9)';
     }
   }
 
@@ -86,35 +85,38 @@
   function drawShirt(cx, cy, color) {
     const r = 42;
     const light = lum(color) > 0.6;
-    const outline = light ? '#475569' : 'rgba(0,0,0,.55)';
+    const outline = light ? 'rgba(15,26,20,.45)' : 'rgba(0,0,0,.45)';
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
-    shirtPath(cx, cy, r); ctx.fillStyle = color; ctx.fill();
+    ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 6;
+    const g = ctx.createLinearGradient(0, cy - r, 0, cy + r);
+    g.addColorStop(0, shade(color, light ? 0 : 0.07)); g.addColorStop(1, shade(color, light ? -0.1 : -0.07));
+    shirtPath(cx, cy, r); ctx.fillStyle = g; ctx.fill();
     ctx.restore();
-    // mangas más oscuras para dar volumen
+    // mangas con un tono apenas distinto
     ctx.save();
     shirtPath(cx, cy, r); ctx.clip();
-    ctx.fillStyle = shade(color, light ? -0.08 : 0.08);
+    ctx.fillStyle = shade(color, light ? -0.1 : -0.09);
     ctx.fillRect(cx - r * 1.1, cy - r, r * 0.6, r * 1.1);
     ctx.fillRect(cx + r * 0.5, cy - r, r * 0.6, r * 1.1);
     ctx.restore();
-    shirtPath(cx, cy, r); ctx.lineWidth = 3.5; ctx.strokeStyle = outline; ctx.stroke();
+    shirtPath(cx, cy, r); ctx.lineWidth = 2.5; ctx.strokeStyle = outline; ctx.stroke();
     // cuello
     ctx.beginPath();
     ctx.moveTo(cx - 0.38 * r, cy - 0.9 * r);
     ctx.quadraticCurveTo(cx, cy - 0.55 * r, cx + 0.38 * r, cy - 0.9 * r);
-    ctx.lineWidth = 5; ctx.strokeStyle = light ? '#475569' : shade(color, 0.3); ctx.stroke();
+    ctx.lineWidth = 4; ctx.strokeStyle = light ? 'rgba(15,26,20,.45)' : shade(color, 0.28); ctx.stroke();
   }
 
   function drawName(cx, cy, name) {
-    ctx.font = '700 30px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    ctx.font = '600 27px ' + FONT;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     let text = name;
-    while (ctx.measureText(text).width > 200 && text.length > 3) text = text.slice(0, -1);
+    while (ctx.measureText(text).width > 190 && text.length > 3) text = text.slice(0, -1);
     if (text !== name) text = text.trimEnd() + '…';
-    ctx.lineWidth = 7; ctx.lineJoin = 'round';
-    ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.strokeText(text, cx, cy);
-    ctx.fillStyle = '#fff'; ctx.fillText(text, cx, cy);
+    const tw = ctx.measureText(text).width, bw = tw + 30, bh = 40;
+    ctx.fillStyle = 'rgba(6,20,13,.72)';
+    ctx.beginPath(); ctx.roundRect(cx - bw / 2, cy - bh / 2, bw, bh, bh / 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText(text, cx, cy + 1);
   }
 
   // Posiciones (x, depth) de cada jugador: arquero primero, luego de defensa a ataque
@@ -140,24 +142,23 @@
       const cx = PX + PW * p.x;
       const cy = top ? PY + p.d : PY + PH - p.d;
       drawShirt(cx, cy, team.color);
-      drawName(cx, cy + 60, name);
+      drawName(cx, cy + 66, name);
     });
     // etiqueta del equipo
     const label = (team.name || '').trim();
     if (label) {
-      ctx.font = '800 34px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-      const tw = ctx.measureText(label.toUpperCase()).width;
-      const bw = tw + 60, bh = 54, bx = PX + 20, by = top ? PY + 20 : PY + PH - 20 - bh;
-      ctx.fillStyle = 'rgba(0,0,0,.55)';
-      ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 27); ctx.fill();
-      ctx.fillStyle = team.color; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(bx + 27, by + bh / 2, 12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.fillText(label.toUpperCase(), bx + 48, by + bh / 2 + 1);
+      ctx.font = '700 28px ' + FONT;
+      const text = label.toUpperCase();
+      const tw = ctx.measureText(text).width;
+      const bw = tw + 70, bh = 50, bx = PX + 44, by = top ? PY + 44 : PY + PH - 44 - bh;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, bh / 2); ctx.fill();
+      ctx.fillStyle = team.color; ctx.strokeStyle = 'rgba(15,26,20,.35)'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(bx + 27, by + bh / 2, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#0f1a14'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, bx + 49, by + bh / 2 + 1);
     }
   }
-
-  const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
   function formatPrice(v) {
     const n = parseInt(String(v).replace(/\D/g, ''), 10);
@@ -184,34 +185,62 @@
 
   function render() {
     const head = headerLines(), foot = footerLines();
-    const HH = head.length ? 60 + head.length * 62 : 0;
-    const FH = foot.length ? 80 + foot.length * 38 : 0;
+    const hasVenue = !!(state.info.venue || '').trim();
+    const hasChips = !!((state.info.time || '').trim() || formatPrice(state.info.price));
+    const HH = 62 + (hasVenue ? 70 : 0) + (hasChips ? 74 : 0) + (hasChips ? 56 : hasVenue ? 44 : 36);
+    const FH = foot.length ? 60 + 90 + foot.length * 44 : 40;
     canvas.height = HH + H + FH; // reinicia el contexto
-    ctx.fillStyle = '#0b3d1d'; ctx.fillRect(0, 0, W, canvas.height);
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, W, canvas.height);
 
+    // encabezado
     ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-    head.forEach((line, k) => {
-      ctx.font = (k === 0 ? '800 50px ' : '700 38px ') + FONT;
-      ctx.fillStyle = k === 0 ? '#ffffff' : '#bbf7d0';
-      ctx.fillText(fitText(line, W - 100), W / 2, 55 + k * 62);
-    });
+    ctx.font = '600 22px ' + FONT;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '6px';
+    ctx.fillStyle = '#4ade80';
+    ctx.fillText('FÚTBOL 7  ·  PILSEN', W / 2 + 3, 62);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    let y = 62;
+    if (hasVenue) {
+      y += 70;
+      ctx.font = '800 56px ' + FONT; ctx.fillStyle = '#ffffff';
+      ctx.fillText(fitText((state.info.venue || '').trim(), W - 120), W / 2, y);
+    }
+    if (hasChips) {
+      y += 74;
+      const chips = [(state.info.time || '').trim(), formatPrice(state.info.price)].filter(Boolean);
+      ctx.font = '600 32px ' + FONT;
+      const widths = chips.map(c => ctx.measureText(c).width + 56), gap = 16;
+      let x = (W - (widths.reduce((a, b) => a + b, 0) + gap * (chips.length - 1))) / 2;
+      chips.forEach((c, k) => {
+        ctx.fillStyle = 'rgba(255,255,255,.1)';
+        ctx.beginPath(); ctx.roundRect(x, y - 30, widths[k], 60, 30); ctx.fill();
+        ctx.fillStyle = '#e7f5ec'; ctx.textAlign = 'center';
+        ctx.fillText(c, x + widths[k] / 2, y + 1);
+        x += widths[k] + gap;
+      });
+    }
 
+    // cancha
     ctx.save(); ctx.translate(0, HH);
     drawPitch();
     drawTeam(state.a, true);
     drawTeam(state.b, false);
-    ctx.font = '600 22px ' + FONT; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.fillText('futbol7pilsen', W - PX - 14, H - PY - 12);
     ctx.restore();
 
+    // pie
+    const y0 = HH + H;
     if (foot.length) {
-      const y0 = HH + H;
-      ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-      ctx.font = '700 30px ' + FONT; ctx.fillStyle = '#bbf7d0';
-      ctx.fillText('DATOS PARA TRANSFERIR', W / 2, y0 + 10);
-      ctx.font = '600 30px ' + FONT; ctx.fillStyle = '#ffffff';
-      foot.forEach((line, k) => ctx.fillText(fitText(line, W - 100), W / 2, y0 + 62 + k * 38));
+      const cw = W - 160, ch = 50 + foot.length * 44 + 30, cx0 = 80, cy0 = y0 + 6;
+      ctx.fillStyle = 'rgba(255,255,255,.07)';
+      ctx.beginPath(); ctx.roundRect(cx0, cy0, cw, ch, 28); ctx.fill();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '600 20px ' + FONT;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '5px';
+      ctx.fillStyle = '#4ade80';
+      ctx.fillText('DATOS PARA TRANSFERIR', W / 2 + 2, cy0 + 40);
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+      ctx.font = '600 31px ' + FONT; ctx.fillStyle = '#ffffff';
+      foot.forEach((line, k) => ctx.fillText(fitText(line, cw - 60), W / 2, cy0 + 90 + k * 44));
     }
   }
 
@@ -226,6 +255,16 @@
       el.classList.toggle('warn', n > MAX_PLAYERS);
     }
     save(); render();
+  }
+
+  function miniSvg(lines) {
+    const n = lines.length;
+    let dots = '<circle cx="17" cy="40" r="2.6"/>';
+    lines.forEach((c, i) => {
+      const y = 31 - i * (22 / Math.max(n - 1, 1)) * (n > 1 ? 1 : 0) - (n === 1 ? 10 : 0);
+      for (let k = 0; k < c; k++) dots += `<circle cx="${c === 1 ? 17 : 6 + 22 * k / (c - 1)}" cy="${y.toFixed(1)}" r="2.6"/>`;
+    });
+    return `<svg viewBox="0 0 34 44" aria-hidden="true"><rect x="0" y="0" width="34" height="44" rx="5"/>${dots}</svg>`;
   }
 
   function buildTeamUI(t) {
@@ -248,7 +287,7 @@
     Object.entries(FORMATIONS).forEach(([key, f]) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.innerHTML = `${f.label}<small>${f.lines.join('-')}</small>`;
+      b.innerHTML = `${miniSvg(f.lines)}${f.label}<small>${f.lines.join('-')}</small>`;
       b.classList.toggle('active', state[t].formation === key);
       b.onclick = () => { state[t].formation = key; buildTeamUI(t); update(); };
       fm.appendChild(b);
@@ -316,4 +355,7 @@
   }
 
   update();
+  if (document.fonts && document.fonts.load) {
+    Promise.all(['500', '600', '700', '800'].map(w => document.fonts.load(`${w} 30px Inter`))).then(update).catch(() => {});
+  }
 })();
