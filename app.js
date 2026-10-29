@@ -193,6 +193,31 @@
     return text;
   }
 
+  // Banca: los nombres que superan los jugadores de cancha de cada equipo
+  function benchLayout() {
+    const cols = [state.a, state.b]
+      .map(team => ({ team, names: parseNames(team.names).slice(maxPlayers()) }))
+      .filter(c => c.names.length);
+    if (!cols.length) return null;
+    const cardW = W - 160, pad = 36, colW = (cardW - pad * (cols.length + 1)) / cols.length;
+    const chipH = 50, gap = 12, headH = 62;
+    ctx.font = '600 26px ' + FONT;
+    cols.forEach(col => {
+      let x = 0, row = 0;
+      col.chips = col.names.map(n => {
+        const text = fitText(n, colW - 40);
+        const w = ctx.measureText(text).width + 40;
+        if (x > 0 && x + w > colW) { x = 0; row++; }
+        const chip = { text, w, x, row };
+        x += w + gap;
+        return chip;
+      });
+      col.h = headH + (row + 1) * (chipH + gap) - gap;
+    });
+    const height = pad * 2 + Math.max(...cols.map(c => c.h));
+    return { cols, cardW, pad, colW, chipH, gap, headH, height };
+  }
+
   function headerLines() {
     const i = state.info;
     const l1 = (i.venue || '').trim();
@@ -211,8 +236,10 @@
     const hasVenue = !!(state.info.venue || '').trim();
     const hasChips = !!((state.info.time || '').trim() || formatPrice(state.info.price));
     const HH = 62 + (hasVenue ? 70 : 0) + (hasChips ? 74 : 0) + (hasChips ? 56 : hasVenue ? 44 : 36);
+    const bench = benchLayout();
+    const BH = bench ? bench.height + 36 : 0;
     const FH = foot.length ? 60 + 90 + foot.length * 44 : 40;
-    canvas.height = HH + H + FH; // reinicia el contexto
+    canvas.height = HH + H + BH + FH; // reinicia el contexto
     ctx.fillStyle = BG; ctx.fillRect(0, 0, W, canvas.height);
 
     // encabezado
@@ -250,8 +277,34 @@
     drawTeam(state.b, false);
     ctx.restore();
 
+    // banca
+    if (bench) {
+      const cx0 = 80, cy0 = HH + H + 6;
+      ctx.fillStyle = 'rgba(255,255,255,.07)';
+      ctx.beginPath(); ctx.roundRect(cx0, cy0, bench.cardW, bench.height, 28); ctx.fill();
+      bench.cols.forEach((col, i) => {
+        const x0 = cx0 + bench.pad + i * (bench.colW + bench.pad), y1 = cy0 + bench.pad;
+        ctx.fillStyle = col.team.color; ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(x0 + 10, y1 + 14, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.font = '600 20px ' + FONT;
+        if ('letterSpacing' in ctx) ctx.letterSpacing = '4px';
+        ctx.fillStyle = '#4ade80';
+        ctx.fillText(`BANCA  ·  ${(col.team.name || '').toUpperCase()}`, x0 + 30, y1 + 15);
+        if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+        ctx.font = '600 26px ' + FONT;
+        col.chips.forEach(ch => {
+          const cx = x0 + ch.x, cy = y1 + bench.headH + ch.row * (bench.chipH + bench.gap);
+          ctx.fillStyle = 'rgba(255,255,255,.1)';
+          ctx.beginPath(); ctx.roundRect(cx, cy, ch.w, bench.chipH, bench.chipH / 2); ctx.fill();
+          ctx.fillStyle = '#e7f5ec';
+          ctx.fillText(ch.text, cx + 20, cy + bench.chipH / 2 + 1);
+        });
+      });
+    }
+
     // pie
-    const y0 = HH + H;
+    const y0 = HH + H + BH;
     if (foot.length) {
       const cw = W - 160, ch = 50 + foot.length * 44 + 30, cx0 = 80, cy0 = y0 + 6;
       ctx.fillStyle = 'rgba(255,255,255,.07)';
@@ -275,8 +328,7 @@
       const n = parseNames(state[t].names).length;
       const el = document.getElementById('count-' + t);
       const max = maxPlayers();
-      el.textContent = n > max ? `${n} nombres: solo caben ${max} (se ignoran los últimos)` : `${n} de ${max} jugadores`;
-      el.classList.toggle('warn', n > max);
+      el.textContent = n > max ? `${max} en cancha · ${n - max} en banca` : `${n} de ${max} jugadores`;
     }
     save(); render();
   }
