@@ -176,10 +176,11 @@
   // Posiciones: x en fracción del ancho, d en fracción de la mitad de la cancha (desde su arco)
   function positions(formationKey) {
     const lines = formations()[formationKey].lines;
-    const out = [{ x: 0.5, d: 0.105 }];
-    const n = lines.length, d0 = 0.285, d1 = 0.88;
+    // arquero y líneas equiespaciados: misma distancia arquero-defensas que entre líneas
+    const dg = 0.12, d1 = 0.88, n = lines.length;
+    const out = [{ x: 0.5, d: dg }];
     lines.forEach((count, i) => {
-      const d = n === 1 ? d0 : d0 + (d1 - d0) * i / (n - 1);
+      const d = dg + (d1 - dg) * (i + 1) / n;
       for (let k = 0; k < count; k++) {
         const m = count >= 5 ? 0.1 : count === 4 ? 0.13 : 0.17;
         const x = count === 1 ? 0.5 : m + (1 - 2 * m) * k / (count - 1);
