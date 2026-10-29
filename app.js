@@ -196,10 +196,28 @@
   }
 
   // Banca: pozo común. Suplentes escritos + los que sobran de cada equipo
-  const SIDE = 330; // ancho extra de la imagen cuando hay banca
   function benchNames() {
     const over = (t) => parseNames(t.names).slice(maxPlayers());
     return [...over(state.a), ...over(state.b), ...parseNames(state.bench || '')];
+  }
+
+  // Una sola fila si cabe (achicando la letra); si no, continúa en otra línea para no perder nombres
+  function benchLayout(names) {
+    if (!names.length) return null;
+    const bw = W - 160, label = 36, lw = 120, maxW = bw - label - lw - 36;
+    const text = names.join('  ·  ');
+    let size = 28;
+    ctx.font = `600 ${size}px ${FONT}`;
+    while (size > 20 && ctx.measureText(text).width > maxW) { size -= 1; ctx.font = `600 ${size}px ${FONT}`; }
+    if (ctx.measureText(text).width <= maxW) return { lines: [text], size, lw, bh: 64 };
+    size = 24; ctx.font = `600 ${size}px ${FONT}`;
+    const lines = []; let cur = '';
+    names.forEach(n => {
+      const next = cur ? cur + '  ·  ' + n : n;
+      if (cur && ctx.measureText(next).width > maxW) { lines.push(cur); cur = n; } else cur = next;
+    });
+    lines.push(cur);
+    return { lines, size, lw, bh: 40 + lines.length * 36 };
   }
 
   function headerLines() {
@@ -221,8 +239,9 @@
     const hasChips = !!((state.info.time || '').trim() || formatPrice(state.info.price));
     const HH = 62 + (hasVenue ? 70 : 0) + (hasChips ? 74 : 0) + (hasChips ? 56 : hasVenue ? 44 : 36);
     const bench = benchNames();
-    const TW = W + (bench.length ? SIDE : 0);
-    const BH = 0;
+    const TW = W;
+    const bl = benchLayout(bench);
+    const BH = bl ? bl.bh + 32 : 0;
     const FH = foot.length ? 60 + 90 + foot.length * 44 : 40;
     canvas.width = TW; canvas.height = HH + H + BH + FH; // reinicia el contexto
     ctx.fillStyle = BG; ctx.fillRect(0, 0, TW, canvas.height);
@@ -262,29 +281,20 @@
     drawTeam(state.b, false);
     ctx.restore();
 
-    // banca (columna a un costado de la cancha)
-    if (bench.length) {
-      const px = W - 14, pw = TW - px - 40, pad = 26, rowH = 52, headH = 74;
-      const cap = Math.floor((PH - headH - pad) / rowH);
-      const list = bench.slice(0, cap);
-      const ph = headH + list.length * rowH + pad;
-      const py = HH + PY;
+    // banca: fila de texto bajo la cancha
+    if (bl) {
+      const bx = 80, bw = TW - 160, by = HH + H + 6;
       ctx.fillStyle = 'rgba(255,255,255,.07)';
-      ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 28); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(bx, by, bw, bl.bh, Math.min(32, bl.bh / 2)); ctx.fill();
       ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       ctx.font = '600 20px ' + FONT;
       if ('letterSpacing' in ctx) ctx.letterSpacing = '5px';
       ctx.fillStyle = '#4ade80';
-      ctx.fillText('BANCA', px + pad, py + 44);
+      const firstY = bl.lines.length === 1 ? by + bl.bh / 2 : by + 20 + 18;
+      ctx.fillText('BANCA', bx + 36, firstY + 1);
       if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-      ctx.font = '600 27px ' + FONT;
-      list.forEach((n, k) => {
-        const cy = py + headH + k * rowH + rowH / 2;
-        ctx.fillStyle = 'rgba(255,255,255,.35)';
-        ctx.beginPath(); ctx.arc(px + pad + 5, cy, 5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#e7f5ec';
-        ctx.fillText(fitText(n, pw - pad * 2 - 28), px + pad + 26, cy + 1);
-      });
+      ctx.font = `600 ${bl.size}px ${FONT}`; ctx.fillStyle = '#e7f5ec';
+      bl.lines.forEach((line, k) => ctx.fillText(line, bx + 36 + bl.lw, firstY + 1 + k * 36));
     }
 
     // pie
