@@ -83,3 +83,4 @@ button { font-family:inherit; }
 .tname { margin-left:2px; font-weight:500; color:var(--muted); }
 .tname::before { content:"· "; }
 @media (max-width:420px) { .swatch { font-size:.78rem; gap:5px; padding:9px 2px; } }
+.note { margin:0; font-size:.78rem; color:var(--muted); }

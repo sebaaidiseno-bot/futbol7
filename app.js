@@ -356,6 +356,9 @@
 
   // ---------- UI ----------
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+  // refuerzo: guardar también al salir o pasar a segundo plano (navegadores móviles)
+  window.addEventListener('pagehide', save);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
 
   function update() {
     for (const t of ['a', 'b']) {
