@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fútbol 7 Pilsen · Formaciones</title>
-<meta name="description" content="Arma la formación de tu partido de fútbol 7 y descarga la imagen lista para compartir.">
+<title>Pilsen FC · Formaciones</title>
+<meta name="description" content="Arma la formación de Pilsen FC (fútbol 7 u 11) y descarga la imagen lista para compartir.">
 <meta name="theme-color" content="#f6f7f4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,7 @@
 <header class="top">
   <div class="brand">
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 7.2l4 2.9-1.5 4.7h-5L8 10.1z"/><path d="M12 7.2V2.8M16 10.1l4.2-1.4M14.5 14.8l2.6 3.7M9.5 14.8l-2.6 3.7M8 10.1L3.8 8.7"/></svg>
-    <span>Fútbol 7 <b>Pilsen</b></span>
+    <span>Pilsen <b>FC</b></span>
   </div>
 </header>
 
@@ -24,6 +24,10 @@
 
     <section class="card">
       <h2><span class="step">1</span>Partido</h2>
+      <div class="mode" id="mode" role="group" aria-label="Modalidad">
+        <button type="button" data-mode="7">Fútbol 7</button>
+        <button type="button" data-mode="11">Fútbol 11</button>
+      </div>
       <label class="field">
         <span>Cancha</span>
         <input id="info-venue" type="text" maxlength="40" placeholder="Ej: Canchas Pilsen · Cancha 3">

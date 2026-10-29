@@ -1,13 +1,22 @@
 (() => {
-  const FORMATIONS = {
-    defensiva:   { label: 'Defensiva',   lines: [3, 2, 1] },
-    equilibrada: { label: 'Equilibrada', lines: [3, 1, 2] },
-    control:     { label: 'Control',     lines: [2, 3, 1] },
-    agresiva:    { label: 'Agresiva',    lines: [2, 1, 1, 2] },
+  const FORMATIONS_BY_MODE = {
+    7: {
+      defensiva:   { label: 'Defensiva',   lines: [3, 2, 1] },
+      equilibrada: { label: 'Equilibrada', lines: [3, 1, 2] },
+      control:     { label: 'Control',     lines: [2, 3, 1] },
+      agresiva:    { label: 'Agresiva',    lines: [2, 1, 1, 2] },
+    },
+    11: {
+      defensiva:   { label: 'Defensiva',   lines: [5, 3, 2] },
+      equilibrada: { label: 'Equilibrada', lines: [4, 4, 2] },
+      control:     { label: 'Control',     lines: [4, 2, 3, 1] },
+      agresiva:    { label: 'Agresiva',    lines: [4, 3, 3] },
+    },
   };
+  const formations = () => FORMATIONS_BY_MODE[state.mode];
+  const maxPlayers = () => state.mode;
   const PRESETS = ['#dc2626', '#ffffff', '#2563eb', '#facc15', '#111827', '#16a34a', '#f97316', '#9333ea'];
-  const MAX_PLAYERS = 7;
-  const STORE_KEY = 'futbol7pilsen:v1';
+  const STORE_KEY = 'futbol7pilsen:v1'; // misma clave para conservar lo ya guardado
 
   const defaults = () => ({
     a: { name: 'Rojo',   color: '#dc2626', formation: 'equilibrada', names: '' },
@@ -15,6 +24,7 @@
   });
 
   let state = defaults();
+  state.mode = 7;
   state.info = { venue: '', time: '', price: '', account: '', showAccount: true };
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
@@ -111,7 +121,7 @@
     ctx.font = '600 27px ' + FONT;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     let text = name;
-    while (ctx.measureText(text).width > 190 && text.length > 3) text = text.slice(0, -1);
+    while (ctx.measureText(text).width > (state.mode === 11 ? 150 : 190) && text.length > 3) text = text.slice(0, -1);
     if (text !== name) text = text.trimEnd() + '…';
     const tw = ctx.measureText(text).width, bw = tw + 30, bh = 40;
     ctx.fillStyle = 'rgba(6,20,13,.72)';
@@ -121,13 +131,14 @@
 
   // Posiciones (x, depth) de cada jugador: arquero primero, luego de defensa a ataque
   function positions(formationKey) {
-    const lines = FORMATIONS[formationKey].lines;
+    const lines = formations()[formationKey].lines;
     const out = [{ x: 0.5, d: 115 }];
     const n = lines.length, d0 = 245, d1 = 640;
     lines.forEach((count, i) => {
       const d = n === 1 ? d0 : d0 + (d1 - d0) * i / (n - 1);
       for (let k = 0; k < count; k++) {
-        const x = count === 1 ? 0.5 : 0.17 + 0.66 * k / (count - 1);
+        const m = count >= 5 ? 0.1 : count === 4 ? 0.13 : 0.17;
+        const x = count === 1 ? 0.5 : m + (1 - 2 * m) * k / (count - 1);
         out.push({ x, d });
       }
     });
@@ -135,7 +146,7 @@
   }
 
   function drawTeam(team, top) {
-    const names = parseNames(team.names).slice(0, MAX_PLAYERS);
+    const names = parseNames(team.names).slice(0, maxPlayers());
     const pos = positions(team.formation);
     names.forEach((name, i) => {
       const p = pos[i];
@@ -197,7 +208,7 @@
     ctx.font = '600 22px ' + FONT;
     if ('letterSpacing' in ctx) ctx.letterSpacing = '6px';
     ctx.fillStyle = '#4ade80';
-    ctx.fillText('FÚTBOL 7  ·  PILSEN', W / 2 + 3, 62);
+    ctx.fillText(`PILSEN FC  ·  FÚTBOL ${state.mode}`, W / 2 + 3, 62);
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
     let y = 62;
     if (hasVenue) {
@@ -251,8 +262,9 @@
     for (const t of ['a', 'b']) {
       const n = parseNames(state[t].names).length;
       const el = document.getElementById('count-' + t);
-      el.textContent = n > MAX_PLAYERS ? `${n} nombres: solo caben ${MAX_PLAYERS} (se ignoran los últimos)` : `${n} de ${MAX_PLAYERS} jugadores`;
-      el.classList.toggle('warn', n > MAX_PLAYERS);
+      const max = maxPlayers();
+      el.textContent = n > max ? `${n} nombres: solo caben ${max} (se ignoran los últimos)` : `${n} de ${max} jugadores`;
+      el.classList.toggle('warn', n > max);
     }
     save(); render();
   }
@@ -284,7 +296,7 @@
 
     const fm = document.querySelector(`.formations[data-team="${t}"]`);
     fm.innerHTML = '';
-    Object.entries(FORMATIONS).forEach(([key, f]) => {
+    Object.entries(formations()).forEach(([key, f]) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.innerHTML = `${miniSvg(f.lines)}${f.label}<small>${f.lines.join('-')}</small>`;
@@ -303,6 +315,14 @@
     nm.value = state[t].name;
     nm.addEventListener('input', () => { state[t].name = nm.value; update(); });
   }
+
+  const modeBtns = document.querySelectorAll('#mode button');
+  function syncMode() {
+    modeBtns.forEach(b => b.classList.toggle('active', Number(b.dataset.mode) === state.mode));
+    buildTeamUI('a'); buildTeamUI('b');
+  }
+  modeBtns.forEach(b => b.onclick = () => { state.mode = Number(b.dataset.mode); syncMode(); update(); });
+  syncMode();
 
   const infoIds = { venue: 'info-venue', time: 'info-time', price: 'info-price', account: 'info-account' };
   Object.entries(infoIds).forEach(([k, id]) => {
@@ -334,7 +354,7 @@
   };
 
   const toBlob = () => new Promise(res => canvas.toBlob(res, 'image/png'));
-  const fileName = () => 'futbol7pilsen-formacion.png';
+  const fileName = () => 'pilsen-fc-formacion.png';
 
   document.getElementById('download').onclick = async () => {
     const blob = await toBlob();
